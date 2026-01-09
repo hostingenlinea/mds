@@ -6,22 +6,19 @@ import { useNavigate } from 'react-router-dom';
 const Admin = () => {
   const [pastores, setPastores] = useState([]);
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('listado'); // 'listado' o 'nuevo'
   
-  // Estado del formulario
+  // Formulario
   const [form, setForm] = useState({ 
     nombre: '', apellido: '', dni: '', iglesiaNombre: '', 
     email: '', telefono: '', nombrePastora: '', fotoUrl: '' 
   });
-  
   const [uploading, setUploading] = useState(false); 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'; 
 
-  // Verificar seguridad
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) { navigate('/login'); return; }
-    const user = JSON.parse(userStr);
-    if (user.rol !== 'ADMIN') { navigate('/perfil'); return; }
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || user.rol !== 'ADMIN') { navigate('/login'); return; }
     cargarPastores();
   }, [navigate]);
 
@@ -51,6 +48,7 @@ const Admin = () => {
       alert('✅ Pastor Registrado');
       setForm({ nombre: '', apellido: '', dni: '', iglesiaNombre: '', email: '', telefono: '', nombrePastora: '', fotoUrl: '' });
       cargarPastores();
+      setActiveTab('listado'); // Volver al listado al terminar
     } catch (error) { alert('Error: DNI duplicado.'); }
   };
 
@@ -59,139 +57,176 @@ const Admin = () => {
     navigate('/login');
   };
 
-  // --- CÁLCULO DE ESTADÍSTICAS ---
-  const totalPastores = pastores.length;
+  // Stats
   const totalLogins = pastores.reduce((acc, p) => acc + (p.vecesLogin || 0), 0);
   const totalVistas = pastores.reduce((acc, p) => acc + (p.vecesVisto || 0), 0);
-  // Top 3 pastores con más actividad (suma de logins + vistas)
-  const topPastores = [...pastores]
-    .sort((a, b) => ((b.vecesLogin||0) + (b.vecesVisto||0)) - ((a.vecesLogin||0) + (a.vecesVisto||0)))
-    .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-blue-900 p-4 shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <h1 className="text-white font-bold text-xl tracking-wider">MDS ADMIN</h1>
-          </div>
-          <button onClick={cerrarSesion} className="bg-blue-800/50 text-blue-100 px-3 py-1.5 rounded hover:bg-red-600/80 transition text-sm">
+    <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
+      
+      {/* SIDEBAR (Barra Lateral) */}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-20 hidden md:flex">
+        <div className="p-6 border-b border-slate-800">
+          <h1 className="text-2xl font-black tracking-tighter text-blue-400">MDS<span className="text-white">Admin</span></h1>
+          <p className="text-xs text-slate-400 mt-1">Gestión de Credenciales</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          <button 
+            onClick={() => setActiveTab('listado')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'listado' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+          >
+            <span>📋</span> Listado General
+          </button>
+          <button 
+            onClick={() => setActiveTab('nuevo')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'nuevo' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+          >
+            <span>👤</span> Nuevo Pastor
+          </button>
+        </nav>
+
+        <div className="p-4 border-t border-slate-800">
+          <button onClick={cerrarSesion} className="w-full flex items-center justify-center gap-2 text-red-400 hover:text-red-300 transition text-sm font-bold py-2">
             Cerrar Sesión
           </button>
         </div>
-      </nav>
+      </aside>
 
-      <div className="max-w-7xl mx-auto p-4 lg:p-8 space-y-8">
+      {/* CONTENIDO PRINCIPAL */}
+      <main className="flex-1 flex flex-col overflow-y-auto relative">
         
-        {/* --- SECCIÓN DE ESTADÍSTICAS (NUEVO) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Pastores" value={totalPastores} icon="👥" color="bg-white" textColor="text-gray-800" />
-          <StatCard label="Accesos al Sistema" value={totalLogins} icon="🔐" color="bg-blue-50" textColor="text-blue-800" />
-          <StatCard label="Escaneos de QR" value={totalVistas} icon="📱" color="bg-green-50" textColor="text-green-800" />
-          
-          {/* Tarjeta de Top Actividad */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">🏆 Más Activos</h3>
-            <div className="space-y-2">
-              {topPastores.map((p, i) => (
-                <div key={p.id} className="flex justify-between text-xs">
-                  <span className="font-semibold text-gray-700">{i+1}. {p.apellido}</span>
-                  <span className="text-gray-500">{(p.vecesLogin||0) + (p.vecesVisto||0)} mov.</span>
-                </div>
-              ))}
-              {topPastores.length === 0 && <span className="text-xs text-gray-400">Sin datos aún</span>}
-            </div>
-          </div>
+        {/* Header Mobile (Solo visible en celular) */}
+        <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-md">
+          <h1 className="font-bold">MDS Admin</h1>
+          <button onClick={cerrarSesion} className="text-xs bg-slate-800 px-2 py-1 rounded">Salir</button>
+        </div>
+        
+        {/* Navegación Mobile */}
+        <div className="md:hidden bg-white p-2 flex gap-2 shadow-sm border-b sticky top-14 z-20">
+           <button onClick={() => setActiveTab('listado')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'listado' ? 'bg-blue-100 text-blue-700' : 'bg-gray-50'}`}>Listado</button>
+           <button onClick={() => setActiveTab('nuevo')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'nuevo' ? 'bg-blue-100 text-blue-700' : 'bg-gray-50'}`}>Nuevo</button>
         </div>
 
-        {/* --- GRID PRINCIPAL (FORMULARIO Y LISTA) --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="p-6 lg:p-10 max-w-6xl mx-auto w-full">
           
-          {/* FORMULARIO */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden lg:col-span-1 lg:sticky lg:top-24">
-            <div className="bg-gray-50 p-4 border-b border-gray-200">
-              <h2 className="font-bold text-gray-800 flex items-center gap-2">👤 Nuevo Registro</h2>
+          {/* HEADER DASHBOARD */}
+          <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800">Panel de Control</h2>
+              <p className="text-gray-500 text-sm">Bienvenido al sistema de administración.</p>
             </div>
-            <div className="p-5">
-              <form onSubmit={guardarPastor} className="space-y-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="Nombre" val={form.nombre} set={v => setForm({...form, nombre: v})} />
-                  <Input label="Apellido" val={form.apellido} set={v => setForm({...form, apellido: v})} />
-                </div>
-                <Input label="DNI (Usuario)" val={form.dni} set={v => setForm({...form, dni: v})} />
-                <Input label="Iglesia" val={form.iglesiaNombre} set={v => setForm({...form, iglesiaNombre: v})} />
-                <div className="border-t border-gray-100 pt-4 space-y-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase">Opcionales</p>
-                  <Input label="Email" type="email" val={form.email} set={v => setForm({...form, email: v})} required={false} />
-                  <Input label="Teléfono" type="tel" val={form.telefono} set={v => setForm({...form, telefono: v})} required={false} />
-                  <Input label="Nombre Esposa" val={form.nombrePastora} set={v => setForm({...form, nombrePastora: v})} required={false} />
-                </div>
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-2 text-center">
-                  <label className="block text-xs font-bold text-blue-800 uppercase mb-3">Foto</label>
-                  <div className="flex flex-col items-center gap-3">
-                    {form.fotoUrl ? <img src={form.fotoUrl} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow" alt="Preview"/> : <span className="text-2xl">📷</span>}
-                    <label className="cursor-pointer bg-white border border-blue-300 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-blue-600 hover:text-white transition">
-                      {uploading ? '...' : 'Subir Foto'}
-                      <input type="file" onChange={handleFileUpload} disabled={uploading} className="hidden"/>
-                    </label>
-                  </div>
-                </div>
-                <button type="submit" disabled={uploading} className="w-full py-3 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded-lg shadow-md text-sm">
-                  {uploading ? '⏳ ...' : '💾 GUARDAR PASTOR'}
+            {/* Stats Rápidos */}
+            <div className="flex gap-4">
+              <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 px-6 text-center">
+                <span className="block text-2xl font-black text-blue-600">{pastores.length}</span>
+                <span className="text-xs text-gray-400 uppercase font-bold">Pastores</span>
+              </div>
+              <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 px-6 text-center hidden sm:block">
+                <span className="block text-2xl font-black text-green-600">{totalVistas}</span>
+                <span className="text-xs text-gray-400 uppercase font-bold">Escaneos</span>
+              </div>
+            </div>
+          </header>
+
+          {/* VISTA: LISTADO */}
+          {activeTab === 'listado' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="font-bold text-gray-700">Directorio de Pastores</h3>
+                <button onClick={() => setActiveTab('nuevo')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-500/30 transition">
+                  + Agregar Nuevo
                 </button>
-              </form>
-            </div>
-          </div>
-
-          {/* LISTADO */}
-          <div className="lg:col-span-2 space-y-4">
-             <div className="flex justify-between items-center">
-                <h2 className="font-bold text-gray-700 flex items-center gap-2">📋 Listado <span className="bg-gray-200 text-xs px-2 rounded-full">{pastores.length}</span></h2>
-             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pastores.map(p => (
-                <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex gap-4 hover:border-blue-300 transition relative overflow-hidden group">
-                  {/* Barra lateral de estado */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${p.estado === 'HABILITADO' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  
-                  <img src={p.fotoUrl || 'https://via.placeholder.com/100?text=S/F'} alt="Avatar" className="w-14 h-14 rounded-full object-cover border border-gray-200 bg-gray-50" />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-800 text-base truncate">{p.apellido}, {p.nombre}</h3>
-                    <p className="text-xs text-gray-500 font-mono">DNI: {p.dni}</p>
-                    
-                    {/* Badge Stats Individuales */}
-                    <div className="flex gap-2 mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                      <span title="Veces que hizo Login">🔐 {p.vecesLogin || 0}</span>
-                      <span title="Veces que se vio su credencial">👁️ {p.vecesVisto || 0}</span>
-                    </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                {pastores.map(p => (
+                  <div key={p.id} className="group relative bg-white rounded-xl p-4 border border-gray-100 hover:border-blue-300 hover:shadow-xl transition-all duration-300">
+                     <div className="flex items-start gap-4">
+                       <img src={p.fotoUrl || 'https://via.placeholder.com/100'} alt="Avatar" className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white" />
+                       <div className="flex-1 min-w-0">
+                         <h4 className="font-bold text-gray-800 truncate">{p.apellido}, {p.nombre}</h4>
+                         <p className="text-xs text-gray-500 mb-1">{p.iglesiaNombre}</p>
+                         <span className="inline-block bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-mono">DNI: {p.dni}</span>
+                       </div>
+                     </div>
+                     <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
+                        <div className="flex gap-3 text-xs text-gray-400">
+                          <span title="Logins">🔐 {p.vecesLogin}</span>
+                          <span title="Vistas">👁️ {p.vecesVisto}</span>
+                        </div>
+                        <a href={`/#/credencial/${p.id}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1">
+                          Ver Credencial ↗
+                        </a>
+                     </div>
                   </div>
-                  <a href={`/#/credencial/${p.id}`} target="_blank" rel="noreferrer" className="shrink-0 bg-gray-50 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition shadow-sm border border-gray-100">🆔</a>
-                </div>
-              ))}
+                ))}
+                {pastores.length === 0 && <div className="col-span-full text-center py-10 text-gray-400">No hay registros aún.</div>}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* VISTA: FORMULARIO */}
+          {activeTab === 'nuevo' && (
+            <div className="max-w-2xl mx-auto">
+              <button onClick={() => setActiveTab('listado')} className="mb-4 text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1">← Volver al listado</button>
+              
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="bg-gray-50 p-6 border-b border-gray-100">
+                  <h3 className="font-bold text-xl text-gray-800">Registrar Nuevo Pastor</h3>
+                  <p className="text-sm text-gray-500">Complete los datos para generar la credencial.</p>
+                </div>
+                
+                <div className="p-8">
+                  <form onSubmit={guardarPastor} className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <Input label="Nombre" val={form.nombre} set={v => setForm({...form, nombre: v})} />
+                      <Input label="Apellido" val={form.apellido} set={v => setForm({...form, apellido: v})} />
+                    </div>
+                    
+                    <Input label="DNI (Será el Usuario)" val={form.dni} set={v => setForm({...form, dni: v})} />
+                    <Input label="Nombre de la Iglesia" val={form.iglesiaNombre} set={v => setForm({...form, iglesiaNombre: v})} />
+                    
+                    <div className="p-4 bg-blue-50/50 rounded-xl space-y-4 border border-blue-100/50">
+                      <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Información de Contacto</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Email" type="email" val={form.email} set={v => setForm({...form, email: v})} required={false} />
+                        <Input label="Teléfono" type="tel" val={form.telefono} set={v => setForm({...form, telefono: v})} required={false} />
+                      </div>
+                      <Input label="Nombre Pastora/Esposa" val={form.nombrePastora} set={v => setForm({...form, nombrePastora: v})} required={false} />
+                    </div>
+
+                    <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
+                      {form.fotoUrl ? <img src={form.fotoUrl} className="w-16 h-16 rounded-full object-cover border-2 border-green-500" alt="Pre"/> : <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-2xl border text-gray-300">📷</div>}
+                      <div className="flex-1">
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Foto de Perfil</label>
+                        <input type="file" onChange={handleFileUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                        {uploading && <span className="text-xs text-blue-600 font-bold animate-pulse mt-1 block">Subiendo...</span>}
+                      </div>
+                    </div>
+
+                    <button type="submit" disabled={uploading} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition transform active:scale-[0.98]">
+                      {uploading ? '⏳ Procesando...' : '💾 GUARDAR REGISTRO'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
-      </div>
+      </main>
     </div>
   );
 };
 
-// Componentes Auxiliares
 const Input = ({ label, val, set, type="text", required=true }) => (
   <div>
-    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{label}</label>
-    <input type={type} value={val} onChange={e => set(e.target.value)} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="..." required={required} />
-  </div>
-);
-
-const StatCard = ({ label, value, icon, color, textColor }) => (
-  <div className={`${color} p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between`}>
-    <div>
-      <p className="text-xs font-bold text-gray-400 uppercase">{label}</p>
-      <p className={`text-2xl font-black ${textColor}`}>{value}</p>
-    </div>
-    <span className="text-2xl opacity-50">{icon}</span>
+    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">{label} {required && <span className="text-red-400">*</span>}</label>
+    <input 
+      type={type} value={val} onChange={e => set(e.target.value)} 
+      className="w-full border border-gray-200 bg-white p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm font-medium shadow-sm"
+      placeholder="..." required={required} 
+    />
   </div>
 );
 
