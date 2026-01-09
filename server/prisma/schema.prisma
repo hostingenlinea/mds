@@ -13,17 +13,22 @@ model Pastor {
   id            Int      @id @default(autoincrement())
   nombre        String
   apellido      String
-  dni           String   @unique  // DNI único para usarlo como usuario al loguearse
-  email         String?  // Opcional
-  telefono      String?  // Nuevo
-  nombrePastora String?  // Nuevo
+  dni           String   @unique
+  email         String?
+  telefono      String?
+  nombrePastora String?
   iglesiaNombre String?
   fotoUrl       String?
   estado        String   @default("HABILITADO")
   
   // Seguridad
-  password      String   @default("1234") // Contraseña (encriptada)
-  rol           String   @default("USER") // "ADMIN" o "USER"
+  password      String   @default("1234")
+  rol           String   @default("USER")
+  
+  // Estadísticas (NUEVOS CAMPOS)
+  vecesLogin    Int      @default(0)
+  vecesVisto    Int      @default(0)
+  ultimoLogin   DateTime?
   
   createdAt     DateTime @default(now())
 }
