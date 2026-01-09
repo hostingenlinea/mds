@@ -1,16 +1,33 @@
 // client/src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useParams } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useParams, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
 // Importamos las páginas
+import Login from './pages/Login';
 import Admin from './pages/Admin';
+import Perfil from './pages/Perfil';
 import Credencial from './components/Credencial';
 
-// --- COMPONENTE ENVOLTORIO PARA LA CREDENCIAL ---
-// Este componente se encarga de buscar los datos del pastor según la ID de la URL
-const CredencialWrapper = () => {
-  const { id } = useParams(); // Obtiene el ID de la URL (ej: 123)
+// --- COMPONENTE PROTECTOR DE RUTAS ---
+// Verifica si hay usuario logueado. Si no, manda al Login.
+const PrivateRoute = ({ children, adminOnly = false }) => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (adminOnly && user.rol !== 'ADMIN') {
+    return <Navigate to="/perfil" />;
+  }
+
+  return children;
+};
+
+// --- COMPONENTE VISUALIZADOR PÚBLICO (Cualquiera puede verlo con el link) ---
+const CredencialPublica = () => {
+  const { id } = useParams();
   const [pastor, setPastor] = useState(null);
   const [loading, setLoading] = useState(true);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -18,12 +35,10 @@ const CredencialWrapper = () => {
   useEffect(() => {
     const fetchPastor = async () => {
       try {
-        // Busca al pastor específico por su ID en el backend
-        const res = await axios.get(`${API_URL}/api/pastores`);
-        const pastorEncontrado = res.data.find(p => p.id.toString() === id);
-        setPastor(pastorEncontrado);
+        const res = await axios.get(`${API_URL}/api/pastores/${id}`);
+        setPastor(res.data);
       } catch (error) {
-        console.error("Error buscando pastor", error);
+        console.error("Error", error);
       } finally {
         setLoading(false);
       }
@@ -31,25 +46,38 @@ const CredencialWrapper = () => {
     fetchPastor();
   }, [id]);
 
-  if (loading) return <div className="p-10 text-center">Cargando credencial...</div>;
-  if (!pastor) return <div className="p-10 text-center text-red-600">Pastor no encontrado o ID incorrecto.</div>;
+  if (loading) return <div className="p-10 text-center">Cargando...</div>;
+  if (!pastor) return <div className="p-10 text-center text-red-600">Credencial no encontrada.</div>;
 
-  // Si lo encuentra, muestra el diseño de la credencial
   return <Credencial pastor={pastor} />;
 };
 
-
-// --- COMPONENTE PRINCIPAL APP (EL MAPA) ---
+// --- APP PRINCIPAL ---
 function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
         <Routes>
-          {/* Ruta principal: Muestra el Panel Admin */}
-          <Route path="/" element={<Admin />} />
+          {/* Ruta Pública (Login es la entrada por defecto) */}
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/login" element={<Login />} />
           
-          {/* Ruta de credencial: Muestra la credencial específica */}
-          <Route path="/credencial/:id" element={<CredencialWrapper />} />
+          {/* Ruta Pública (Ver credencial escaneando QR) */}
+          <Route path="/credencial/:id" element={<CredencialPublica />} />
+
+          {/* Ruta Privada: SOLO ADMIN */}
+          <Route path="/admin" element={
+            <PrivateRoute adminOnly={true}>
+              <Admin />
+            </PrivateRoute>
+          } />
+
+          {/* Ruta Privada: CUALQUIER USUARIO REGISTRADO */}
+          <Route path="/perfil" element={
+            <PrivateRoute>
+              <Perfil />
+            </PrivateRoute>
+          } />
         </Routes>
       </div>
     </Router>
