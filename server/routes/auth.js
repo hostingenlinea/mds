@@ -39,4 +39,46 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// --- RUTA DE RESCATE (SOLO PARA EMERGENCIAS) ---
+router.get('/crear-admin-rescate', async (req, res) => {
+  const dniAdmin = "11111111";
+  const passAdmin = "admin123";
+  
+  try {
+    // Encriptar la contraseña de nuevo para asegurar que sea correcta
+    const hashedPassword = await bcrypt.hash(passAdmin, 10);
+
+    // Crear o Actualizar el usuario
+    const admin = await prisma.pastor.upsert({
+      where: { dni: dniAdmin },
+      update: { 
+        password: hashedPassword, // Resetea la contraseña
+        rol: "ADMIN"              // Asegura el rol
+      }, 
+      create: {
+        nombre: "Administrador",
+        apellido: "Principal",
+        dni: dniAdmin,
+        password: hashedPassword,
+        rol: "ADMIN",
+        estado: "HABILITADO",
+        iglesiaNombre: "Casa Central"
+      },
+    });
+
+    res.send(`
+      <h1 style="color:green">✅ Admin Restaurado con Éxito</h1>
+      <p>Ya puedes iniciar sesión con:</p>
+      <ul>
+        <li><b>Usuario (DNI):</b> ${dniAdmin}</li>
+        <li><b>Contraseña:</b> ${passAdmin}</li>
+      </ul>
+      <a href="/login">Ir al Login</a>
+    `);
+
+  } catch (error) {
+    res.status(500).send("❌ Error creando admin: " + error.message);
+  }
+});
+
 module.exports = router;
