@@ -20,3 +20,13 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
+
+// ... otros requires
+const uploadRoutes = require('./routes/upload'); // <--- AGREGAR ESTO
+
+// ... app.use(cors()) etc
+
+app.use('/api/upload', uploadRoutes); // <--- AGREGAR ESTO (Antes de pastores)
+app.use('/api/pastores', pastoresRoutes);
+
+// ...
