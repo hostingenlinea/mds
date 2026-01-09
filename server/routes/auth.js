@@ -6,9 +6,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
-const SECRET_KEY = "mi_secreto_super_seguro"; // En producción esto va en .env
+const SECRET_KEY = "mi_secreto_super_seguro"; // En producción usar variables de entorno
 
-// LOGIN
+// --- LOGIN ---
 router.post('/login', async (req, res) => {
   const { dni, password } = req.body;
 
@@ -21,10 +21,25 @@ router.post('/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, pastor.password);
     if (!validPassword) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    // 3. Generar Token
+    // --- NUEVO: Actualizar Estadísticas de Login ---
+    try {
+      await prisma.pastor.update({
+        where: { id: pastor.id },
+        data: { 
+          vecesLogin: { increment: 1 }, // Suma 1 al contador
+          ultimoLogin: new Date()       // Guarda la fecha y hora actual
+        }
+      });
+    } catch (statsError) {
+      console.error("Error actualizando estadísticas (no crítico):", statsError);
+      // No detenemos el login si falla la estadística, solo lo registramos en consola
+    }
+    // ------------------------------------------------
+
+    // 3. Generar Token de sesión
     const token = jwt.sign({ id: pastor.id, rol: pastor.rol }, SECRET_KEY, { expiresIn: '8h' });
 
-    // 4. Responder con datos y token
+    // 4. Responder al cliente
     res.json({ 
       token, 
       user: { 
@@ -35,26 +50,23 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ error: 'Error en el login' });
+    console.error("Error en login:", error);
+    res.status(500).json({ error: 'Error en el servidor durante el login' });
   }
 });
 
-// --- RUTA DE RESCATE (SOLO PARA EMERGENCIAS) ---
+// --- RUTA DE RESCATE (SOLO EMERGENCIA) ---
+// Úsala si alguna vez borras la base de datos y te quedas sin Admin
 router.get('/crear-admin-rescate', async (req, res) => {
   const dniAdmin = "11111111";
   const passAdmin = "admin123";
   
   try {
-    // Encriptar la contraseña de nuevo para asegurar que sea correcta
     const hashedPassword = await bcrypt.hash(passAdmin, 10);
 
-    // Crear o Actualizar el usuario
-    const admin = await prisma.pastor.upsert({
+    await prisma.pastor.upsert({
       where: { dni: dniAdmin },
-      update: { 
-        password: hashedPassword, // Resetea la contraseña
-        rol: "ADMIN"              // Asegura el rol
-      }, 
+      update: { password: hashedPassword, rol: "ADMIN" }, 
       create: {
         nombre: "Administrador",
         apellido: "Principal",
@@ -66,18 +78,9 @@ router.get('/crear-admin-rescate', async (req, res) => {
       },
     });
 
-    res.send(`
-      <h1 style="color:green">✅ Admin Restaurado con Éxito</h1>
-      <p>Ya puedes iniciar sesión con:</p>
-      <ul>
-        <li><b>Usuario (DNI):</b> ${dniAdmin}</li>
-        <li><b>Contraseña:</b> ${passAdmin}</li>
-      </ul>
-      <a href="/login">Ir al Login</a>
-    `);
-
+    res.send(`<h1>✅ Admin Restaurado</h1><p>Usuario: ${dniAdmin} / Clave: ${passAdmin}</p>`);
   } catch (error) {
-    res.status(500).send("❌ Error creando admin: " + error.message);
+    res.status(500).send("❌ Error: " + error.message);
   }
 });
 

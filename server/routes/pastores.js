@@ -14,14 +14,29 @@ router.get('/', async (req, res) => {
   res.json(pastores);
 });
 
-// OBTENER UNO SOLO (Para el perfil de usuario)
+// OBTENER UNO SOLO (Y contar la visita)
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  const pastor = await prisma.pastor.findUnique({
-    where: { id: parseInt(id) }
-  });
-  if(pastor) res.json(pastor);
-  else res.status(404).json({error: "No encontrado"});
+  try {
+    // Primero buscamos
+    const pastor = await prisma.pastor.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (pastor) {
+      // Si existe, sumamos 1 a "vecesVisto" en segundo plano
+      await prisma.pastor.update({
+        where: { id: parseInt(id) },
+        data: { vecesVisto: { increment: 1 } }
+      });
+      
+      res.json(pastor);
+    } else {
+      res.status(404).json({error: "No encontrado"});
+    }
+  } catch (error) {
+    res.status(500).json({error: "Error del servidor"});
+  }
 });
 
 // CREAR PASTOR (Con password hasheado)
