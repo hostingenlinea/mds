@@ -1,4 +1,5 @@
 // server/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,14 +10,20 @@ datasource db {
 }
 
 model Pastor {
-  id              String   @id @default(uuid())
-  nombre          String
-  apellido        String
-  dni             String   @unique
-  estado          String   @default("HABILITADO") // HABILITADO, SUSPENDIDO
-  fotoUrl         String?
-  iglesiaNombre   String?
-  direccion       String?
-  ficheroCulto    String?
-  createdAt       DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  apellido      String
+  dni           String   @unique  // DNI único para usarlo como usuario al loguearse
+  email         String?  // Opcional
+  telefono      String?  // Nuevo
+  nombrePastora String?  // Nuevo
+  iglesiaNombre String?
+  fotoUrl       String?
+  estado        String   @default("HABILITADO")
+  
+  // Seguridad
+  password      String   @default("1234") // Contraseña (encriptada)
+  rol           String   @default("USER") // "ADMIN" o "USER"
+  
+  createdAt     DateTime @default(now())
 }
