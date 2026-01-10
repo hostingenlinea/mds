@@ -73,4 +73,17 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// ELIMINAR PASTOR
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.pastor.delete({
+      where: { id: parseInt(id) }
+    });
+    res.json({ message: "Pastor eliminado correctamente" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar. Verifique que el ID exista." });
+  }
+});
+
 module.exports = router;
