@@ -1,75 +1,65 @@
-// server/routes/pastores.js
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs'); // Necesario para encriptar
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 // OBTENER TODOS
 router.get('/', async (req, res) => {
-  const pastores = await prisma.pastor.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+  const pastores = await prisma.pastor.findMany({ orderBy: { createdAt: 'desc' } });
   res.json(pastores);
 });
 
-// OBTENER UNO SOLO (Y contar la visita)
+// OBTENER UNO
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    // Primero buscamos
-    const pastor = await prisma.pastor.findUnique({
-      where: { id: parseInt(id) }
-    });
-
+    const pastor = await prisma.pastor.findUnique({ where: { id: parseInt(id) } });
     if (pastor) {
-      // Si existe, sumamos 1 a "vecesVisto" en segundo plano
-      await prisma.pastor.update({
-        where: { id: parseInt(id) },
-        data: { vecesVisto: { increment: 1 } }
-      });
-      
-      res.json(pastor);
+       // Sumar vista en segundo plano
+       await prisma.pastor.update({ where: { id: parseInt(id) }, data: { vecesVisto: { increment: 1 } } });
+       res.json(pastor);
     } else {
-      res.status(404).json({error: "No encontrado"});
+       res.status(404).json({error: "No encontrado"});
     }
-  } catch (error) {
-    res.status(500).json({error: "Error del servidor"});
-  }
+  } catch (e) { res.status(500).json({error: "Error"}); }
 });
 
-// CREAR PASTOR (Con password hasheado)
+// CREAR (Con Contraseña Personalizada)
 router.post('/', async (req, res) => {
-  const { nombre, apellido, dni, iglesiaNombre, fotoUrl, email, telefono, nombrePastora, rol } = req.body;
+  const { nombre, apellido, dni, iglesiaNombre, fotoUrl, email, telefono, nombrePastora, rol, password } = req.body;
   
-  // Por defecto, la contraseña será el DNI
-  const hashedPassword = await bcrypt.hash(dni, 10); 
+  // Usar la contraseña enviada O el DNI si no escribieron nada
+  const passToHash = (password && password.trim() !== "") ? password : dni;
+  const hashedPassword = await bcrypt.hash(passToHash, 10); 
 
   try {
     const nuevo = await prisma.pastor.create({
       data: {
         nombre, apellido, dni, iglesiaNombre, fotoUrl,
         email, telefono, nombrePastora,
-        password: hashedPassword, // Guardamos la contraseña segura
-        rol: rol || "USER" // Si no especifican, es usuario normal
+        password: hashedPassword,
+        rol: rol || "USER"
       }
     });
     res.json(nuevo);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: 'Error creando pastor (posible DNI duplicado)' });
+    res.status(400).json({ error: 'Error creando pastor (DNI duplicado)' });
   }
 });
 
-// ACTUALIZAR (Para editar datos)
+// ACTUALIZAR (Inteligente: Solo cambia password si se envía uno nuevo)
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const data = req.body;
-    
-    // Si intentan cambiar el password, hay que encriptarlo de nuevo
-    if (data.password) {
+
+    // Si viene password y no está vacío, lo encriptamos
+    if (data.password && data.password.trim() !== "") {
         data.password = await bcrypt.hash(data.password, 10);
+    } else {
+        // Si está vacío o no viene, lo borramos del objeto para que Prisma NO lo toque
+        delete data.password;
     }
 
     try {
