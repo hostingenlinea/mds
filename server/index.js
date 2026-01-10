@@ -7,7 +7,8 @@ const { PrismaClient } = require('@prisma/client');
 const pastoresRoutes = require('./routes/pastores');
 const uploadRoutes = require('./routes/upload');
 const authRoutes = require('./routes/auth');
-const iglesiasRoutes = require('./routes/iglesias'); // <--- Importante
+const iglesiasRoutes = require('./routes/iglesias');
+const actasRoutes = require('./routes/actas');
 
 // 2. CREAR APP
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/pastores', pastoresRoutes);
 app.use('/api/iglesias', iglesiasRoutes); // <--- Conectar la ruta
+app.use('/api/actas', actasRoutes);
 
 // 5. INICIAR SERVIDOR
 app.listen(PORT, () => {

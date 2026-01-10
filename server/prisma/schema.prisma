@@ -1,47 +1,9 @@
-// server/prisma/schema.prisma
+// ... (Modelos anteriores Pastor e Iglesia)
 
-// 1. CONFIGURACIÓN OBLIGATORIA
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-// 2. MODELO PASTOR
-model Pastor {
+model Acta {
   id            Int      @id @default(autoincrement())
-  nombre        String
-  apellido      String
-  dni           String   @unique
-  email         String?
-  telefono      String?
-  nombrePastora String?
-  iglesiaNombre String?
-  fotoUrl       String?
-  estado        String   @default("HABILITADO")
-  
-  password      String   @default("1234")
-  rol           String   @default("USER")
-  
-  vecesLogin    Int      @default(0)
-  vecesVisto    Int      @default(0)
-  ultimoLogin   DateTime?
-  
-  createdAt     DateTime @default(now())
-}
-
-// 3. MODELO IGLESIA (NUEVO)
-model Iglesia {
-  id            Int      @id @default(autoincrement())
-  nombre        String
-  direccion     String?
-  dias          String?
-  horarios      String?
-  ficheroCulto  String?
-  personeria    String?
-  estado        String   @default("ACTIVA")
-  createdAt     DateTime @default(now())
+  titulo        String
+  contenido     String   @db.Text // Texto largo
+  iglesiaNombre String
+  fecha         DateTime @default(now())
 }
