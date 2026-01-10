@@ -3,28 +3,28 @@ const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 
-// Importar rutas
+// 1. IMPORTAR RUTAS
 const pastoresRoutes = require('./routes/pastores');
 const uploadRoutes = require('./routes/upload');
 const authRoutes = require('./routes/auth');
-const iglesiasRoutes = require('./routes/iglesias');
+const iglesiasRoutes = require('./routes/iglesias'); // <--- Importante
 
-// 1. CREAR LA APP (Esto debe ir antes de cualquier app.use)
+// 2. CREAR APP
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 
-// 2. MIDDLEWARES (Configuraciones)
-app.use(express.json()); // <--- ¡Vital para que funcione el Login!
+// 3. MIDDLEWARES
+app.use(express.json());
 app.use(cors());
 
-// 3. RUTAS
+// 4. USAR RUTAS
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/pastores', pastoresRoutes);
-app.use('/api/iglesias', iglesiasRoutes);
+app.use('/api/iglesias', iglesiasRoutes); // <--- Conectar la ruta
 
-// 4. INICIAR SERVIDOR
+// 5. INICIAR SERVIDOR
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });
