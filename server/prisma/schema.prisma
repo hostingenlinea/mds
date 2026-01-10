@@ -1,5 +1,6 @@
 // server/prisma/schema.prisma
 
+// 1. CONFIGURACIÓN OBLIGATORIA
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 2. MODELO PASTOR
 model Pastor {
   id            Int      @id @default(autoincrement())
   nombre        String
@@ -21,14 +23,25 @@ model Pastor {
   fotoUrl       String?
   estado        String   @default("HABILITADO")
   
-  // Seguridad
   password      String   @default("1234")
   rol           String   @default("USER")
   
-  // Estadísticas (NUEVOS CAMPOS)
   vecesLogin    Int      @default(0)
   vecesVisto    Int      @default(0)
   ultimoLogin   DateTime?
   
+  createdAt     DateTime @default(now())
+}
+
+// 3. MODELO IGLESIA (NUEVO)
+model Iglesia {
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  direccion     String?
+  dias          String?
+  horarios      String?
+  ficheroCulto  String?
+  personeria    String?
+  estado        String   @default("ACTIVA")
   createdAt     DateTime @default(now())
 }

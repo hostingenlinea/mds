@@ -1,106 +1,111 @@
 import React from 'react';
 import QRCode from "react-qr-code";
-import { ShieldCheck, ShieldX } from 'lucide-react';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 const Credencial = ({ pastor }) => {
   const esValido = pastor.estado === 'HABILITADO';
   const urlCredencial = window.location.href;
 
   return (
-    // Fondo general de la página de credencial
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 antialiased font-sans">
+    <div className="flex flex-col gap-8 items-center justify-center p-4 bg-gray-100 min-h-screen font-sans">
       
-      {/* TARJETA DE CREDENCIAL OFICIAL */}
-      <div className="w-full max-w-[380px] bg-white rounded-2xl overflow-hidden shadow-2xl relative">
+      {/* --- FRENTE DE LA CREDENCIAL --- */}
+      <div className="w-[320px] h-[540px] bg-white rounded-[30px] shadow-2xl overflow-hidden relative flex flex-col items-center border border-gray-100">
         
-        {/* --- CABECERA INSTITUCIONAL (Color Principal) --- */}
-        <div className="bg-brand-primary h-40 relative overflow-hidden flex justify-center items-start pt-8">
-            {/* Patrón de fondo sutil */}
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--brand-accent),_transparent_70%)]"></div>
-            
-            <div className="text-center relative z-10">
-                <h1 className="text-white font-black text-3xl tracking-tight leading-none">MDS</h1>
-                <p className="text-brand-accent text-xs font-bold uppercase tracking-[0.2em] mt-1">Mensaje de Salvación</p>
+        {/* Cabecera Azul Oscura Curva */}
+        <div className="w-full h-36 bg-[#0f172a] relative">
+            <div className="absolute top-6 w-full text-center">
+                <h1 className="text-white font-serif text-lg tracking-widest opacity-90">MDS GLOBAL</h1>
             </div>
         </div>
 
-        {/* --- CUERPO DE LA CREDENCIAL --- */}
-        <div className="px-6 pb-8 relative">
-            
-            {/* FOTO DE PERFIL FLOTANTE */}
-            <div className="flex justify-center -mt-20 mb-4 relative">
-                <div className="p-1 bg-white rounded-full shadow-lg">
-                    <img 
-                      src={pastor.fotoUrl || "https://via.placeholder.com/150?text=Foto"} 
-                      alt="Pastor" 
-                      className={`w-36 h-36 rounded-full object-cover border-4 ${esValido ? 'border-brand-accent' : 'border-red-500'}`}
-                    />
-                </div>
-                {/* Icono de Estado */}
-                <div className={`absolute bottom-2 right-1/3 translate-x-4 p-2 rounded-full text-white shadow-md border-2 border-white ${esValido ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {esValido ? <ShieldCheck size={20} /> : <ShieldX size={20} />}
-                </div>
-            </div>
-
-            {/* DATOS PRINCIPALES */}
-            <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 leading-tight capitalize">{pastor.nombre} {pastor.apellido}</h2>
-                <div className="inline-block bg-brand-primary/10 text-brand-primary text-xs font-black uppercase px-3 py-1 rounded-full mt-2 tracking-wider border border-brand-primary/20">
-                    Ministro Ordenado
-                </div>
-            </div>
-
-            {/* TABLA DE DATOS FORMAL */}
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6 space-y-3 text-sm relative overflow-hidden">
-                {/* Barra lateral de acento */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary"></div>
-                
-                <DataRow label="Documento (DNI)" value={pastor.dni} />
-                <DataRow label="Congregación" value={p.iglesiaNombre || 'N/A'} />
-                {pastor.nombrePastora && <DataRow label="Cónyuge" value={pastor.nombrePastora} />}
-                
-                {/* Estado */}
-                <div className="flex justify-between items-center pt-2 border-t border-gray-200 mt-2">
-                    <span className="text-gray-500 font-medium text-xs uppercase">Estado</span>
-                    <span className={`font-bold text-xs px-2 py-0.5 rounded uppercase ${esValido ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {pastor.estado}
-                    </span>
-                </div>
-            </div>
-
-            {/* CÓDIGO QR DE VALIDACIÓN */}
-            <div className="flex flex-col items-center gap-3">
-                <div className="bg-white p-2 rounded-xl border-2 border-dashed border-brand-primary/30">
-                    <QRCode 
-                        value={urlCredencial} 
-                        size={100} 
-                        bgColor="#FFFFFF"
-                        fgColor="var(--brand-primary)" // Usa el color de la marca
-                        level="M"
-                    />
-                </div>
-                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider text-center max-w-[200px]">
-                    Escanee para validar autenticidad oficial
-                </p>
-            </div>
-
+        {/* Foto Perfil Flotante */}
+        <div className="-mt-16 relative z-10">
+          <div className="p-1 bg-white rounded-full shadow-lg">
+            <img 
+              src={pastor.fotoUrl || 'https://via.placeholder.com/150'} 
+              className="w-32 h-32 rounded-full object-cover border-4 border-[#0f172a]" 
+            />
+          </div>
         </div>
-        
-        {/* PIE DE PÁGINA */}
-        <div className="bg-gray-100 py-3 text-center border-t border-gray-200">
-            <p className="text-[10px] text-gray-500 font-medium">Documento Digital Oficial • MDS</p>
+
+        {/* Datos Principales */}
+        <div className="text-center mt-4 px-6 w-full flex-1 flex flex-col">
+           <h2 className="text-2xl font-black text-[#0f172a] leading-tight uppercase font-sans">
+             {pastor.nombre} <br/> {pastor.apellido}
+           </h2>
+           <p className="text-blue-600 font-bold text-xs tracking-[0.2em] uppercase mt-2">Pastor Ordenado</p>
+           
+           <div className="mt-6 space-y-4">
+               {/* Caja DNI */}
+               <div className="bg-gray-50 py-2 px-4 rounded-xl border border-gray-100">
+                 <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Documento de Identidad</p>
+                 <p className="text-xl font-black text-gray-800 tracking-wide">{pastor.dni}</p>
+               </div>
+
+               {/* Caja Estado */}
+               <div className={`py-2 px-4 rounded-xl border-2 ${esValido ? 'border-green-100 bg-green-50/50' : 'border-red-100 bg-red-50/50'}`}>
+                 <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Estado Credencial</p>
+                 <div className={`flex items-center justify-center gap-2 text-sm font-black uppercase ${esValido ? 'text-green-600' : 'text-red-600'}`}>
+                    {esValido ? <CheckCircle2 size={16}/> : <AlertCircle size={16}/>}
+                    {esValido ? 'HABILITADO' : 'SUSPENDIDO'}
+                 </div>
+               </div>
+           </div>
+
+           {/* QR al pie */}
+           <div className="mt-auto mb-6 flex flex-col items-center gap-2 opacity-60 hover:opacity-100 transition">
+              <div className="p-1.5 bg-white border border-gray-200 rounded-lg">
+                 <QRCode value={urlCredencial} size={50} />
+              </div>
+              <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Verificación Digital MDS</p>
+           </div>
         </div>
       </div>
+
+      {/* --- DORSO (REVERSO) --- */}
+      <div className="w-[320px] h-[540px] bg-[#0f172a] rounded-[30px] shadow-2xl overflow-hidden relative flex flex-col p-8 text-white">
+          <h3 className="text-blue-400 font-bold italic mb-8 border-b border-blue-900 pb-4">MENSAJE DE SALVACIÓN</h3>
+          
+          <div className="space-y-6 flex-1">
+             <div>
+               <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Jurisdicción Sede</p>
+               <p className="font-bold text-lg leading-tight">{pastor.iglesiaNombre || 'Sede Central Global'}</p>
+             </div>
+             
+             <div className="grid grid-cols-1 gap-4">
+               <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Fichero de Culto</p>
+                  <p className="font-mono text-sm tracking-widest text-white">FC-99283</p>
+               </div>
+               <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Personería Jurídica</p>
+                  <p className="font-mono text-sm tracking-widest text-white">PJ-001293</p>
+               </div>
+             </div>
+
+             <div className="pt-4">
+                <p className="text-xs italic text-gray-400 leading-relaxed">
+                  "Y les dijo: Id por todo el mundo y predicad el evangelio a toda criatura."
+                </p>
+                <p className="text-[10px] text-blue-400 font-bold mt-1 text-right">- Marcos 16:15</p>
+             </div>
+          </div>
+
+          <div className="mt-auto pt-6 border-t border-gray-800 flex justify-between items-end">
+             <div className="w-24 border-t border-gray-500 pt-1 text-center">
+                <p className="text-[8px] text-gray-500 font-bold uppercase">Firma Autorizada</p>
+             </div>
+             <div className="bg-white text-[#0f172a] text-[10px] font-black px-2 py-1 rounded">MDS</div>
+          </div>
+          
+          <p className="text-[8px] text-center text-gray-600 font-bold uppercase mt-4">
+             www.mdsglobal.org
+          </p>
+      </div>
+
     </div>
   );
 };
-
-// Componente auxiliar para filas de datos
-const DataRow = ({ label, value }) => (
-    <div className="flex justify-between items-center">
-        <span className="text-gray-500 font-medium text-xs uppercase truncate pr-4">{label}</span>
-        <span className="text-gray-900 font-bold text-right truncate flex-1">{value}</span>
-    </div>
-);
 
 export default Credencial;

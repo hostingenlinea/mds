@@ -7,6 +7,7 @@ const { PrismaClient } = require('@prisma/client');
 const pastoresRoutes = require('./routes/pastores');
 const uploadRoutes = require('./routes/upload');
 const authRoutes = require('./routes/auth');
+const iglesiasRoutes = require('./routes/iglesias');
 
 // 1. CREAR LA APP (Esto debe ir antes de cualquier app.use)
 const app = express();
@@ -21,6 +22,7 @@ app.use(cors());
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/pastores', pastoresRoutes);
+app.use('/api/iglesias', iglesiasRoutes);
 
 // 4. INICIAR SERVIDOR
 app.listen(PORT, () => {
