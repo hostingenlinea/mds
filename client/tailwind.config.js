@@ -5,7 +5,17 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // Colores exactos de tu referencia MDS Global
+        mds: {
+          dark: '#030816',    // Fondo Sidebar
+          blue: '#2563EB',    // Botón Azul Brillante
+          hover: '#1e293b',   // Hover menú
+          text: '#94a3b8'     // Texto grisáceo
+        }
+      }
+    },
   },
   plugins: [],
 }
