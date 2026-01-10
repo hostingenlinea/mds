@@ -4,23 +4,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --- ADN DE TU MARCA --- */
+/* CAMBIA ESTOS VALORES POR LOS DE TU LOGO */
+:root {
+  /* Color Principal (Ej: El azul oscuro del logo) - Se usa en barras laterales, botones principales */
+  --brand-primary: #003366; 
+  
+  /* Color Secundario/Acento (Ej: Dorado, Naranja o Celeste del logo) - Para detalles, bordes, iconos */
+  --brand-accent: #D4AF37; 
+
+  /* Color de Fondo Neutro (No suele hacer falta cambiarlo) */
+  --brand-bg: #f4f7f9;
+}
+
+/* Aplicando la tipografía y fondo base */
 body {
-  font-family: 'Inter', sans-serif; /* Esto cambia la letra en toda la app */
-  background-color: #f3f4f6;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--brand-bg);
+  color: #1a202c;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Opcional: Estilo para las barras de scroll */
-::-webkit-scrollbar {
-  width: 8px;
+/* --- CLASES DE UTILIDAD PERSONALIZADAS --- */
+@layer utilities {
+  .bg-brand-primary { background-color: var(--brand-primary); }
+  .text-brand-primary { color: var(--brand-primary); }
+  .border-brand-primary { border-color: var(--brand-primary); }
+  
+  .bg-brand-accent { background-color: var(--brand-accent); }
+  .text-brand-accent { color: var(--brand-accent); }
+  .border-brand-accent { border-color: var(--brand-accent); }
 }
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+
+/* Estilizado de Scrollbars para que combinen */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--brand-primary); border-radius: 4px; }
