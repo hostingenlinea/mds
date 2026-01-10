@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Menu, User, LogOut, X, Search, Bell, List, PlusCircle, Trash2, Edit } from 'lucide-react';
 
 const Admin = () => {
   const [pastores, setPastores] = useState([]);
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('listado'); 
+  const [activeTab, setActiveTab] = useState('listado');
   const [editingId, setEditingId] = useState(null);
+  
+  // Estado para menús móviles
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  // Formulario con ROL y ESTADO
+  // Formulario
   const [form, setForm] = useState({ 
     nombre: '', apellido: '', dni: '', iglesiaNombre: '', 
     email: '', telefono: '', nombrePastora: '', fotoUrl: '',
@@ -32,15 +37,10 @@ const Admin = () => {
   };
 
   const iniciarEdicion = (pastor) => {
-    setForm({
-      nombre: pastor.nombre, apellido: pastor.apellido, dni: pastor.dni,
-      iglesiaNombre: pastor.iglesiaNombre || '', email: pastor.email || '',
-      telefono: pastor.telefono || '', nombrePastora: pastor.nombrePastora || '',
-      fotoUrl: pastor.fotoUrl || '', password: '', 
-      rol: pastor.rol, estado: pastor.estado // Cargamos rol y estado actual
-    });
+    setForm({ ...pastor, password: '' }); // Cargar datos
     setEditingId(pastor.id);
     setActiveTab('nuevo');
+    setSidebarOpen(false); // Cerrar menú al seleccionar
   };
 
   const cancelarEdicion = () => {
@@ -65,7 +65,6 @@ const Admin = () => {
     } catch (error) { alert("Error al subir imagen"); } finally { setUploading(false); }
   };
 
-  // Guardar (Crear o Editar)
   const guardarPastor = async (e) => {
     e.preventDefault();
     try {
@@ -81,25 +80,14 @@ const Admin = () => {
     } catch (error) { alert('Error al guardar.'); }
   };
 
-  // Eliminar Pastor
   const eliminarPastor = async (id, nombre) => {
-    if(!window.confirm(`¿Estás seguro de ELIMINAR a ${nombre}? Esta acción no se puede deshacer.`)) return;
-    
-    try {
-        await axios.delete(`${API_URL}/api/pastores/${id}`);
-        cargarPastores(); // Recargar lista
-    } catch (error) {
-        alert("Error al eliminar");
-    }
+    if(!window.confirm(`¿Eliminar a ${nombre}?`)) return;
+    try { await axios.delete(`${API_URL}/api/pastores/${id}`); cargarPastores(); } catch (error) { alert("Error al eliminar"); }
   };
 
-  // Cambiar Estado Rápido (Habilitar/Suspender)
   const toggleEstado = async (pastor) => {
       const nuevoEstado = pastor.estado === 'HABILITADO' ? 'SUSPENDIDO' : 'HABILITADO';
-      try {
-          await axios.put(`${API_URL}/api/pastores/${pastor.id}`, { estado: nuevoEstado });
-          cargarPastores(); // Recargar para ver el cambio visual
-      } catch (error) { console.error(error); }
+      try { await axios.put(`${API_URL}/api/pastores/${pastor.id}`, { estado: nuevoEstado }); cargarPastores(); } catch (e) { console.error(e); }
   };
 
   const cerrarSesion = () => { localStorage.clear(); navigate('/login'); };
@@ -107,67 +95,100 @@ const Admin = () => {
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
       
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col z-20">
-        <div className="p-6">
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">MDS<span className="text-blue-600">Admin</span></h1>
+      {/* --- HEADER ESTILO APP (AZUL) --- */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-blue-700 text-white flex items-center justify-between px-4 z-50 shadow-md">
+        
+        {/* Izquierda: Menú Hamburguesa */}
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-blue-600 rounded-full transition">
+          <Menu size={28} strokeWidth={2.5} />
+        </button>
+
+        {/* Centro: Logo */}
+        <div className="flex items-center gap-2">
+            <span className="text-xl font-bold tracking-tight">MDS <span className="font-light opacity-80">Admin</span></span>
         </div>
-        <nav className="flex-1 px-4 space-y-2">
-          <button onClick={cancelarEdicion} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'listado' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-            <span>📋</span> Listado
-          </button>
-          <button onClick={() => { setEditingId(null); setActiveTab('nuevo'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'nuevo' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-            <span>👤</span> {editingId ? 'Editando...' : 'Nuevo Pastor'}
-          </button>
-        </nav>
-        <div className="p-4 border-t">
-          <button onClick={cerrarSesion} className="w-full text-red-500 hover:bg-red-50 py-2 rounded-lg font-bold text-sm transition">Cerrar Sesión</button>
+
+        {/* Derecha: Iconos Acción y Perfil */}
+        <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-blue-600 rounded-full transition">
+               <Search size={24} />
+            </button>
+            <div className="relative">
+                <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="p-2 hover:bg-blue-600 rounded-full transition">
+                  <User size={24} />
+                </button>
+                
+                {/* Menú Dropdown de Perfil */}
+                {profileMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 text-gray-800 animate-in fade-in zoom-in duration-200 origin-top-right">
+                        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                            <p className="text-sm font-bold text-gray-900">Administrador</p>
+                            <p className="text-xs text-gray-500 truncate">admin@mds.com</p>
+                        </div>
+                        <button onClick={cerrarSesion} className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium">
+                            <LogOut size={16} /> Cerrar Sesión
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
+      </header>
+
+      {/* --- SIDEBAR (Menú Lateral Deslizable) --- */}
+      {/* Overlay Oscuro */}
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"></div>}
+      
+      {/* Panel Lateral */}
+      <aside className={`fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shadow-none border-r border-gray-100 pt-16 md:pt-0`}>
+         <div className="p-6 hidden md:block">
+            <h1 className="text-2xl font-black text-slate-800">MDS Admin</h1>
+         </div>
+         <nav className="p-4 space-y-2">
+            <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Menú Principal</p>
+            <button onClick={() => { setActiveTab('listado'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'listado' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <List size={20} /> Listado General
+            </button>
+            <button onClick={() => { setEditingId(null); setActiveTab('nuevo'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'nuevo' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <PlusCircle size={20} /> Nuevo Registro
+            </button>
+         </nav>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col overflow-y-auto relative">
-        <div className="md:hidden bg-white p-4 flex justify-between items-center shadow-sm sticky top-0 z-30">
-          <h1 className="font-bold text-slate-800">MDS Admin</h1>
-          <button onClick={cerrarSesion} className="text-xs text-red-500 font-bold">Salir</button>
-        </div>
-        
-        <div className="p-6 lg:p-10 max-w-6xl mx-auto w-full">
+      {/* --- CONTENIDO PRINCIPAL --- */}
+      <main className="flex-1 flex flex-col overflow-y-auto pt-16 bg-gray-50">
+        <div className="p-6 max-w-6xl mx-auto w-full">
           
-          {/* VISTA LISTADO */}
+          {/* VISTA: LISTADO */}
           {activeTab === 'listado' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-end">
-                <h2 className="text-2xl font-bold text-slate-800">Panel de Control</h2>
-                <button onClick={() => { setEditingId(null); setActiveTab('nuevo'); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 transition">+ Nuevo</button>
+              <div className="flex justify-between items-center">
+                 <h2 className="text-xl font-bold text-slate-800">Pastores ({pastores.length})</h2>
+                 <button onClick={() => { setEditingId(null); setActiveTab('nuevo'); }} className="bg-blue-600 text-white p-3 rounded-full shadow-lg md:hidden">
+                    <PlusCircle size={24} />
+                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pastores.map(p => (
-                  <div key={p.id} className={`bg-white rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all group relative overflow-hidden ${p.estado === 'SUSPENDIDO' ? 'border-red-200 bg-red-50/30' : 'border-gray-100'}`}>
+                  <div key={p.id} className={`bg-white rounded-xl p-4 border shadow-sm relative overflow-hidden ${p.estado === 'SUSPENDIDO' ? 'border-red-200 bg-red-50/20' : 'border-gray-100'}`}>
+                     <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${p.estado === 'HABILITADO' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                      
-                     {/* Etiqueta de Estado */}
-                     <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold text-white rounded-bl-xl ${p.estado === 'HABILITADO' ? 'bg-green-500' : 'bg-red-500'}`}>
-                        {p.estado}
-                     </div>
-
                      <div className="flex items-center gap-4 mb-4">
-                       <img src={p.fotoUrl || 'https://via.placeholder.com/100'} className={`w-14 h-14 rounded-full object-cover border-2 ${p.estado === 'HABILITADO' ? 'border-green-400' : 'border-red-400'} shadow-sm`} />
+                       <img src={p.fotoUrl || 'https://via.placeholder.com/100'} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
                        <div className="min-w-0">
-                         <h4 className="font-bold text-slate-800 truncate">{p.apellido}, {p.nombre}</h4>
-                         <p className="text-xs text-slate-500 font-mono">DNI: {p.dni}</p>
-                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{p.rol}</span>
+                         <h4 className="font-bold text-slate-800 truncate text-lg">{p.apellido}</h4>
+                         <p className="text-sm text-slate-600">{p.nombre}</p>
+                         <p className="text-xs text-slate-400 font-mono mt-1">{p.dni}</p>
                        </div>
                      </div>
                      
-                     {/* Botones de Acción */}
-                     <div className="grid grid-cols-4 gap-2 pt-2 border-t border-gray-100">
-                        <button onClick={() => toggleEstado(p)} title={p.estado === 'HABILITADO' ? 'Suspender' : 'Habilitar'} className={`col-span-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center ${p.estado === 'HABILITADO' ? 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                            {p.estado === 'HABILITADO' ? '⏸' : '▶'}
+                     {/* Botones Acción Estilo App */}
+                     <div className="flex gap-2 border-t pt-3">
+                        <button onClick={() => iniciarEdicion(p)} className="flex-1 py-2 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold flex justify-center items-center gap-1 hover:bg-slate-100"><Edit size={14}/> Editar</button>
+                        <button onClick={() => toggleEstado(p)} className={`flex-1 py-2 rounded-lg text-xs font-bold flex justify-center items-center gap-1 ${p.estado==='HABILITADO'?'bg-orange-50 text-orange-600':'bg-green-50 text-green-600'}`}>
+                            {p.estado === 'HABILITADO' ? 'Pausar' : 'Activar'}
                         </button>
-                        <button onClick={() => iniciarEdicion(p)} className="col-span-1 py-2 rounded-lg bg-slate-50 text-slate-600 text-xs font-bold hover:bg-slate-100 transition">✏️</button>
-                        <a href={`/#/credencial/${p.id}`} target="_blank" rel="noreferrer" className="col-span-1 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition flex items-center justify-center">🆔</a>
-                        <button onClick={() => eliminarPastor(p.id, p.apellido)} className="col-span-1 py-2 rounded-lg bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition">🗑</button>
+                        <button onClick={() => eliminarPastor(p.id, p.apellido)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button>
                      </div>
                   </div>
                 ))}
@@ -175,12 +196,12 @@ const Admin = () => {
             </div>
           )}
 
-          {/* VISTA FORMULARIO */}
+          {/* VISTA: FORMULARIO */}
           {activeTab === 'nuevo' && (
-            <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-                <div className="bg-slate-50/50 p-6 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-bold text-xl text-slate-800">{editingId ? '✏️ Editando' : '👤 Nuevo Pastor'}</h3>
-                  <button onClick={cancelarEdicion} className="text-sm text-slate-500 hover:text-red-500">Cancelar</button>
+            <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-bold text-lg text-slate-800">{editingId ? 'Editar Pastor' : 'Nuevo Registro'}</h3>
+                  <button onClick={cancelarEdicion} className="p-1 hover:bg-slate-200 rounded-full"><X size={20} className="text-slate-500"/></button>
                 </div>
                 
                 <form onSubmit={guardarPastor} className="p-6 space-y-5">
@@ -189,49 +210,37 @@ const Admin = () => {
                     <Input label="Apellido" val={form.apellido} set={v => setForm({...form, apellido: v})} />
                   </div>
                   
-                  {/* SELECCIÓN DE ROL Y ESTADO (NUEVO) */}
-                  <div className="grid grid-cols-2 gap-4 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Rol de Usuario</label>
-                        <select value={form.rol} onChange={e => setForm({...form, rol: e.target.value})} className="w-full p-2.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="USER">USUARIO (Normal)</option>
-                            <option value="ADMIN">ADMINISTRADOR</option>
+                  {/* Selector Rol/Estado */}
+                  <div className="flex gap-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                     <div className="flex-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Rol</label>
+                        <select value={form.rol} onChange={e => setForm({...form, rol: e.target.value})} className="w-full bg-transparent font-bold text-slate-700 outline-none mt-1">
+                            <option value="USER">Usuario</option>
+                            <option value="ADMIN">Admin</option>
                         </select>
                      </div>
-                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Estado</label>
-                        <select value={form.estado} onChange={e => setForm({...form, estado: e.target.value})} className={`w-full p-2.5 rounded-lg border border-slate-200 text-sm font-bold outline-none ${form.estado === 'HABILITADO' ? 'text-green-600' : 'text-red-600'}`}>
-                            <option value="HABILITADO">HABILITADO 🟢</option>
-                            <option value="SUSPENDIDO">SUSPENDIDO 🔴</option>
+                     <div className="w-px bg-blue-200"></div>
+                     <div className="flex-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Estado</label>
+                        <select value={form.estado} onChange={e => setForm({...form, estado: e.target.value})} className={`w-full bg-transparent font-bold outline-none mt-1 ${form.estado==='HABILITADO'?'text-green-600':'text-red-600'}`}>
+                            <option value="HABILITADO">Activo</option>
+                            <option value="SUSPENDIDO">Suspendido</option>
                         </select>
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input label="DNI (Usuario)" val={form.dni} set={v => setForm({...form, dni: v})} />
-                    <div className="relative">
-                       <Input label="Contraseña" type="password" val={form.password} set={v => setForm({...form, password: v})} required={false} />
-                       <p className="text-[10px] text-gray-400 absolute top-0 right-0">{editingId ? 'Vacío = No cambiar' : 'Vacío = DNI'}</p>
-                    </div>
-                  </div>
-
+                  <Input label="DNI (Usuario)" val={form.dni} set={v => setForm({...form, dni: v})} />
+                  <Input label="Contraseña (Opcional)" type="password" val={form.password} set={v => setForm({...form, password: v})} required={false} placeholder={editingId ? "Sin cambios" : "Igual al DNI"} />
                   <Input label="Iglesia" val={form.iglesiaNombre} set={v => setForm({...form, iglesiaNombre: v})} />
                   
-                  <div className="space-y-4 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input label="Email" type="email" val={form.email} set={v => setForm({...form, email: v})} required={false} />
-                      <Input label="Teléfono" type="tel" val={form.telefono} set={v => setForm({...form, telefono: v})} required={false} />
-                    </div>
-                    <Input label="Nombre Esposa" val={form.nombrePastora} set={v => setForm({...form, nombrePastora: v})} required={false} />
+                  {/* Foto */}
+                  <div className="flex items-center gap-4 p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50">
+                    {form.fotoUrl ? <img src={form.fotoUrl} className="w-12 h-12 rounded-full object-cover" /> : <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center"><User size={20} className="text-slate-300"/></div>}
+                    <input type="file" onChange={handleFileUpload} disabled={uploading} className="text-xs text-slate-500 w-full file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700"/>
                   </div>
 
-                  <div className="flex items-center gap-4 p-3 border border-dashed border-slate-300 rounded-xl">
-                    {form.fotoUrl ? <img src={form.fotoUrl} className="w-12 h-12 rounded-full object-cover" /> : <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-xl">📷</div>}
-                    <input type="file" onChange={handleFileUpload} disabled={uploading} className="block w-full text-xs text-slate-500"/>
-                  </div>
-
-                  <button type="submit" disabled={uploading} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg transition">
-                    {uploading ? '⏳ ...' : (editingId ? '💾 GUARDAR CAMBIOS' : '💾 CREAR PASTOR')}
+                  <button type="submit" disabled={uploading} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition active:scale-[0.98]">
+                    {uploading ? 'Guardando...' : 'GUARDAR DATOS'}
                   </button>
                 </form>
             </div>
@@ -242,10 +251,10 @@ const Admin = () => {
   );
 };
 
-const Input = ({ label, val, set, type="text", required=true }) => (
+const Input = ({ label, val, set, type="text", required=true, placeholder="" }) => (
   <div>
-    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">{label} {required && '*'}</label>
-    <input type={type} value={val} onChange={e => set(e.target.value)} className="w-full border border-slate-200 bg-white p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium placeholder-slate-300" required={required} />
+    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">{label}</label>
+    <input type={type} value={val} onChange={e => set(e.target.value)} className="w-full border border-slate-200 bg-white p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium" placeholder={placeholder} required={required} />
   </div>
 );
 
