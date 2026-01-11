@@ -17,6 +17,7 @@ const Credencial = ({ pastor }) => {
             <div className="text-center relative z-10">
                 {/* Texto MDS (Solo MDS) */}
                 <h1 className="text-white font-serif font-bold text-3xl tracking-widest">MDS</h1>
+                <p className="text-blue-200 text-[10px] font-bold uppercase tracking-[0.3em] mt-1"></p>
             </div>
         </div>
 
