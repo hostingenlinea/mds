@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Church, CreditCard, Book, Bell, Search, LogOut, Plus, Trash2, Edit3, Power, X, User, Menu, ChevronDown, Printer } from 'lucide-react';
+import { LayoutDashboard, Users, Church, CreditCard, Book, Bell, Search, LogOut, Plus, Trash2, Edit3, Power, X, User, Menu, ChevronDown, Printer, FileText } from 'lucide-react';
 
 const Admin = () => {
   const [pastores, setPastores] = useState([]);
@@ -10,6 +10,11 @@ const Admin = () => {
   const [editingId, setEditingId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Estado local para simular Actas (hasta que tengamos backend)
+  const [actas, setActas] = useState([
+    { id: 1, titulo: 'Asamblea Anual 2025', fecha: '10/01/2026', estado: 'Cerrada' }
+  ]);
+
   const [form, setForm] = useState({ 
     nombre: '', apellido: '', dni: '', iglesiaNombre: '', 
     email: '', telefono: '', nombrePastora: '', fotoUrl: '',
@@ -26,20 +31,39 @@ const Admin = () => {
 
   const cargarPastores = async () => { try { const res = await axios.get(`${API_URL}/api/pastores`); setPastores(res.data); } catch (e) { console.error(e); } };
 
-  // --- LÓGICA DE NAVEGACIÓN Y EDICIÓN ---
-  const cambiarTab = (tab) => {
-      setActiveTab(tab);
-      setSidebarOpen(false); // Cierra el menú en móvil al hacer clic
-      setEditingId(null);    // Resetea edición si estabas editando
-  };
+  // --- CÁLCULOS AUTOMÁTICOS ---
+  // Extraemos las iglesias únicas de la lista de pastores
+  const listaIglesias = [...new Set(pastores.map(p => p.iglesiaNombre).filter(nombre => nombre && nombre.trim() !== ''))];
+  const totalIglesias = listaIglesias.length;
 
+  // --- LÓGICA ---
   const iniciarEdicion = (p) => { setForm({ ...p, password: '' }); setEditingId(p.id); setActiveTab('nuevo'); setSidebarOpen(false); };
   const cancelarEdicion = () => { setForm({ nombre: '', apellido: '', dni: '', iglesiaNombre: '', email: '', telefono: '', nombrePastora: '', fotoUrl: '', password: '', rol: 'USER', estado: 'HABILITADO' }); setEditingId(null); setActiveTab('listado'); };
-  const handleFileUpload = async (e) => { const file = e.target.files[0]; if (!file) return; setUploading(true); const formData = new FormData(); formData.append('foto', file); try { const res = await axios.post(`${API_URL}/api/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); setForm({ ...form, fotoUrl: res.data.url }); } catch (error) { alert("Error al subir"); } finally { setUploading(false); } };
+  
+  const handleFileUpload = async (e) => { 
+      const file = e.target.files[0]; if (!file) return; 
+      setUploading(true); 
+      const formData = new FormData(); formData.append('foto', file); 
+      try { const res = await axios.post(`${API_URL}/api/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); setForm({ ...form, fotoUrl: res.data.url }); } 
+      catch (error) { alert("Error al subir imagen"); } 
+      finally { setUploading(false); } 
+  };
+
   const guardarPastor = async (e) => { e.preventDefault(); try { if (editingId) await axios.put(`${API_URL}/api/pastores/${editingId}`, form); else await axios.post(`${API_URL}/api/pastores`, form); cancelarEdicion(); cargarPastores(); alert(editingId ? 'Actualizado' : 'Creado'); } catch (error) { alert('Error al guardar'); } };
   const eliminarPastor = async (id) => { if(confirm('¿Eliminar?')) { await axios.delete(`${API_URL}/api/pastores/${id}`); cargarPastores(); } };
   const toggleEstado = async (p) => { await axios.put(`${API_URL}/api/pastores/${p.id}`, { estado: p.estado === 'HABILITADO' ? 'SUSPENDIDO' : 'HABILITADO' }); cargarPastores(); };
   const cerrarSesion = () => { localStorage.clear(); navigate('/login'); };
+
+  // Función para botón de nueva iglesia
+  const handleNuevaIglesia = () => {
+      alert("ℹ️ Para agregar una nueva Sede, simplemente registre un Pastor y escriba el nombre de la nueva iglesia en el formulario. El sistema la creará automáticamente.");
+      setActiveTab('nuevo');
+  };
+
+  // Función para botón de nueva acta (Simulada)
+  const handleNuevaActa = () => {
+      alert("📝 Módulo de Actas en construcción. Pronto podrás redactar y guardar actas digitales aquí.");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
@@ -57,13 +81,12 @@ const Admin = () => {
            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white"><X size={24} /></button>
         </div>
         
-        {/* MENÚ DE NAVEGACIÓN */}
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-           <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => cambiarTab('dashboard')} />
-           <SidebarItem icon={<Users size={20}/>} label="Pastores" active={activeTab === 'listado' || activeTab === 'nuevo'} onClick={() => cambiarTab('listado')} />
-           <SidebarItem icon={<Church size={20}/>} label="Iglesias" active={activeTab === 'iglesias'} onClick={() => cambiarTab('iglesias')} />
-           <SidebarItem icon={<CreditCard size={20}/>} label="Credenciales" active={activeTab === 'credenciales'} onClick={() => cambiarTab('credenciales')} />
-           <SidebarItem icon={<Book size={20}/>} label="Libro de Actas" active={activeTab === 'actas'} onClick={() => cambiarTab('actas')} />
+           <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => {setActiveTab('dashboard'); setSidebarOpen(false)}} />
+           <SidebarItem icon={<Users size={20}/>} label="Pastores" active={activeTab === 'listado' || activeTab === 'nuevo'} onClick={() => {setActiveTab('listado'); setSidebarOpen(false)}} />
+           <SidebarItem icon={<Church size={20}/>} label="Iglesias" active={activeTab === 'iglesias'} onClick={() => {setActiveTab('iglesias'); setSidebarOpen(false)}} />
+           <SidebarItem icon={<CreditCard size={20}/>} label="Credenciales" active={activeTab === 'credenciales'} onClick={() => {setActiveTab('credenciales'); setSidebarOpen(false)}} />
+           <SidebarItem icon={<Book size={20}/>} label="Libro de Actas" active={activeTab === 'actas'} onClick={() => {setActiveTab('actas'); setSidebarOpen(false)}} />
         </nav>
         
         <div className="p-4 border-t border-white/5 bg-black/20">
@@ -95,8 +118,12 @@ const Admin = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                    <StatCard icon={<Users className="text-blue-600"/>} label="Total Pastores" value={pastores.length} />
                    <StatCard icon={<Users className="text-orange-600"/>} label="Suspendidos" value={pastores.filter(p=>p.estado==='SUSPENDIDO').length} />
-                   <StatCard icon={<Church className="text-green-600"/>} label="Iglesias" value="3" />
-                   <StatCard icon={<Book className="text-purple-600"/>} label="Actas" value="12" />
+                   
+                   {/* Contador Real de Iglesias */}
+                   <StatCard icon={<Church className="text-green-600"/>} label="Iglesias" value={totalIglesias} />
+                   
+                   {/* Contador de Actas (Simulado) */}
+                   <StatCard icon={<Book className="text-purple-600"/>} label="Actas" value={actas.length} />
                 </div>
              </div>
            )}
@@ -135,35 +162,54 @@ const Admin = () => {
              </div>
            )}
 
-           {/* VISTA: IGLESIAS */}
+           {/* VISTA: IGLESIAS (Ahora muestra la lista real) */}
            {activeTab === 'iglesias' && (
              <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex justify-between items-center">
-                   <h1 className="text-2xl font-bold text-gray-800">Iglesias</h1>
-                   <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Nueva Sede</button>
+                   <h1 className="text-2xl font-bold text-gray-800">Sedes e Iglesias</h1>
+                   <button onClick={handleNuevaIglesia} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2">
+                       <Plus size={18}/> Nueva Sede
+                   </button>
                 </div>
-                <div className="bg-white p-10 rounded-xl border border-gray-200 text-center text-gray-500">
-                    <Church size={48} className="mx-auto mb-4 text-gray-300"/>
-                    <p>Módulo de gestión de iglesias.</p>
-                </div>
+                
+                {listaIglesias.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {listaIglesias.map((iglesia, index) => (
+                            <div key={index} className="bg-white p-5 rounded-xl border border-gray-200 flex items-center gap-4 hover:shadow-md transition">
+                                <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+                                    <Church size={24}/>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800">{iglesia}</h3>
+                                    <p className="text-xs text-gray-500">Sede Activa</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="bg-white p-10 rounded-xl border border-gray-200 text-center text-gray-500">
+                        <Church size={48} className="mx-auto mb-4 text-gray-300"/>
+                        <p>No hay iglesias registradas aún.</p>
+                    </div>
+                )}
              </div>
            )}
 
-            {/* VISTA: CREDENCIALES */}
+           {/* VISTA: CREDENCIALES */}
            {activeTab === 'credenciales' && (
              <div className="space-y-6 animate-in fade-in duration-300">
                 <h1 className="text-2xl font-bold text-gray-800">Emisión de Credenciales</h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {pastores.map(p => (
-                        <div key={p.id} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between">
+                        <div key={p.id} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between group hover:border-blue-300 transition">
                             <div className="flex items-center gap-3">
-                                <img src={p.fotoUrl || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-full bg-gray-100"/>
+                                <img src={p.fotoUrl || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-full bg-gray-100 object-cover"/>
                                 <div>
                                     <p className="font-bold text-sm text-gray-800">{p.nombre} {p.apellido}</p>
                                     <p className="text-xs text-gray-500">{p.dni}</p>
                                 </div>
                             </div>
-                            <a href={`/#/credencial/${p.id}`} target="_blank" className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition">
+                            <a href={`/#/credencial/${p.id}`} target="_blank" className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition" title="Imprimir Credencial">
                                 <Printer size={20}/>
                             </a>
                         </div>
@@ -172,13 +218,32 @@ const Admin = () => {
              </div>
            )}
 
-           {/* VISTA: LIBRO DE ACTAS */}
+           {/* VISTA: LIBRO DE ACTAS (Botón Restaurado) */}
            {activeTab === 'actas' && (
              <div className="space-y-6 animate-in fade-in duration-300">
-                <h1 className="text-2xl font-bold text-gray-800">Libro de Actas</h1>
-                <div className="bg-white p-10 rounded-xl border border-gray-200 text-center text-gray-500">
-                    <Book size={48} className="mx-auto mb-4 text-gray-300"/>
-                    <p>Registro digital de actas y asambleas.</p>
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-gray-800">Libro de Actas</h1>
+                    {/* Botón de Nueva Acta Restaurado */}
+                    <button onClick={handleNuevaActa} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2">
+                        <Plus size={18}/> Nueva Acta
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                    {actas.map(acta => (
+                        <div key={acta.id} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between hover:shadow-sm transition">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+                                    <FileText size={24}/>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800">{acta.titulo}</h3>
+                                    <p className="text-xs text-gray-500">Fecha: {acta.fecha}</p>
+                                </div>
+                            </div>
+                            <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">{acta.estado}</span>
+                        </div>
+                    ))}
                 </div>
              </div>
            )}
@@ -195,8 +260,8 @@ const Admin = () => {
                         </div>
                         <button onClick={cancelarEdicion} className="p-2 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 transition"><X size={20}/></button>
                     </div>
+                    
                     <form onSubmit={guardarPastor} className="p-6 md:p-8 space-y-6">
-                        {/* CAMPOS DEL FORMULARIO... (Igual que antes) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input label="Nombre" val={form.nombre} set={v=>setForm({...form, nombre: v})} />
                             <Input label="Apellido" val={form.apellido} set={v=>setForm({...form, apellido: v})} />
@@ -209,15 +274,19 @@ const Admin = () => {
                             <Input label="Nombre Esposa" val={form.nombrePastora} set={v=>setForm({...form, nombrePastora: v})} required={false} />
                             <Input label="Teléfono" val={form.telefono} set={v=>setForm({...form, telefono: v})} required={false} />
                         </div>
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input label="Contraseña (Opcional)" type="password" val={form.password} set={v=>setForm({...form, password: v})} required={false} placeholder="Dejar vacío si no cambia" />
+                            
                             <div className="grid grid-cols-2 gap-4">
                                 <Select label="Estado" val={form.estado} set={v=>setForm({...form, estado: v})} options={[{v:'HABILITADO',l:'Habilitado'},{v:'SUSPENDIDO',l:'Suspendido'}]} />
                                 <Select label="Rol de Acceso" val={form.rol} set={v=>setForm({...form, rol: v})} options={[{v:'USER',l:'Pastor'},{v:'ADMIN',l:'Admin'}]} />
                             </div>
                         </div>
+
                         <Select label="Iglesia" val={form.iglesiaNombre} set={v=>setForm({...form, iglesiaNombre: v})} options={[{v:'', l:'Seleccionar Sede...'}, {v:'Sede Central', l:'Sede Central'}, {v:'Sede Norte', l:'Sede Norte'}]} />
-                        <Input label="Escribir Nombre Iglesia (Si no está en lista)" val={form.iglesiaNombre} set={v=>setForm({...form, iglesiaNombre: v})} />
+                        <Input label="Escribir Nombre Iglesia (Si no está en lista)" val={form.iglesiaNombre} set={v=>setForm({...form, iglesiaNombre: v})} placeholder="Escriba aquí si seleccionó otra..." />
+
                         <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center gap-4">
                              <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center border border-gray-200 overflow-hidden shrink-0">
                                 {form.fotoUrl ? <img src={form.fotoUrl} className="w-full h-full object-cover"/> : <User className="text-gray-300"/>}
@@ -229,6 +298,7 @@ const Admin = () => {
                                 </label>
                              </div>
                         </div>
+
                         <div className="flex justify-end gap-3 pt-4">
                             <button type="button" onClick={cancelarEdicion} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition">Cancelar</button>
                             <button type="submit" disabled={uploading} className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition disabled:opacity-50 w-full md:w-auto">
