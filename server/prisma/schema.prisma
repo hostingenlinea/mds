@@ -51,6 +51,7 @@ model Acta {
   id            Int      @id @default(autoincrement())
   titulo        String
   contenido     String   @db.Text
-  iglesiaNombre String
+  iglesiaNombre String   // Campo obligatorio que faltaba
   fecha         DateTime @default(now())
+  archivoUrl    String?  // Agregamos esto para poder guardar fotos/PDFs
 }
