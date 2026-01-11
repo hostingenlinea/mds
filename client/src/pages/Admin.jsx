@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Church, CreditCard, Book, Bell, Search, LogOut, Plus, Trash2, Edit3, Power, X, User, Menu, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, Church, CreditCard, Book, Bell, Search, LogOut, Plus, Trash2, Edit3, Power, X, User, Menu, ChevronDown, Printer } from 'lucide-react';
 
 const Admin = () => {
   const [pastores, setPastores] = useState([]);
@@ -26,6 +26,13 @@ const Admin = () => {
 
   const cargarPastores = async () => { try { const res = await axios.get(`${API_URL}/api/pastores`); setPastores(res.data); } catch (e) { console.error(e); } };
 
+  // --- LÓGICA DE NAVEGACIÓN Y EDICIÓN ---
+  const cambiarTab = (tab) => {
+      setActiveTab(tab);
+      setSidebarOpen(false); // Cierra el menú en móvil al hacer clic
+      setEditingId(null);    // Resetea edición si estabas editando
+  };
+
   const iniciarEdicion = (p) => { setForm({ ...p, password: '' }); setEditingId(p.id); setActiveTab('nuevo'); setSidebarOpen(false); };
   const cancelarEdicion = () => { setForm({ nombre: '', apellido: '', dni: '', iglesiaNombre: '', email: '', telefono: '', nombrePastora: '', fotoUrl: '', password: '', rol: 'USER', estado: 'HABILITADO' }); setEditingId(null); setActiveTab('listado'); };
   const handleFileUpload = async (e) => { const file = e.target.files[0]; if (!file) return; setUploading(true); const formData = new FormData(); formData.append('foto', file); try { const res = await axios.post(`${API_URL}/api/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); setForm({ ...form, fotoUrl: res.data.url }); } catch (error) { alert("Error al subir"); } finally { setUploading(false); } };
@@ -37,8 +44,10 @@ const Admin = () => {
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
       
+      {/* Overlay Móvil */}
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"></div>}
 
+      {/* --- SIDEBAR --- */}
       <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-mds-dark text-white flex-shrink-0 flex flex-col transition-transform duration-300 border-r border-white/5 shadow-2xl md:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="h-20 flex items-center justify-between px-6">
            <div className="flex items-center gap-3">
@@ -47,17 +56,22 @@ const Admin = () => {
            </div>
            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white"><X size={24} /></button>
         </div>
+        
+        {/* MENÚ DE NAVEGACIÓN */}
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-           <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => {setActiveTab('dashboard'); setSidebarOpen(false)}} />
-           <SidebarItem icon={<Users size={20}/>} label="Pastores" active={activeTab === 'listado' || activeTab === 'nuevo'} onClick={() => {setActiveTab('listado'); setSidebarOpen(false)}} />
-           <SidebarItem icon={<Church size={20}/>} label="Iglesias" active={false} />
-           <SidebarItem icon={<CreditCard size={20}/>} label="Credenciales" active={false} />
+           <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => cambiarTab('dashboard')} />
+           <SidebarItem icon={<Users size={20}/>} label="Pastores" active={activeTab === 'listado' || activeTab === 'nuevo'} onClick={() => cambiarTab('listado')} />
+           <SidebarItem icon={<Church size={20}/>} label="Iglesias" active={activeTab === 'iglesias'} onClick={() => cambiarTab('iglesias')} />
+           <SidebarItem icon={<CreditCard size={20}/>} label="Credenciales" active={activeTab === 'credenciales'} onClick={() => cambiarTab('credenciales')} />
+           <SidebarItem icon={<Book size={20}/>} label="Libro de Actas" active={activeTab === 'actas'} onClick={() => cambiarTab('actas')} />
         </nav>
+        
         <div className="p-4 border-t border-white/5 bg-black/20">
            <button onClick={cerrarSesion} className="flex items-center gap-3 text-gray-400 hover:text-white transition px-4 py-2 w-full text-sm font-medium"><LogOut size={18} /> Cerrar Sesión</button>
         </div>
       </aside>
 
+      {/* --- CONTENIDO PRINCIPAL --- */}
       <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#f8fafc] w-full">
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 flex-shrink-0 shadow-sm z-10 sticky top-0">
            <div className="flex items-center gap-4">
@@ -73,20 +87,25 @@ const Admin = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
+           
+           {/* VISTA: DASHBOARD */}
            {activeTab === 'dashboard' && (
              <div className="space-y-6 animate-in fade-in duration-300">
                 <h1 className="text-2xl font-bold text-gray-800">Panel Central</h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                    <StatCard icon={<Users className="text-blue-600"/>} label="Total Pastores" value={pastores.length} />
                    <StatCard icon={<Users className="text-orange-600"/>} label="Suspendidos" value={pastores.filter(p=>p.estado==='SUSPENDIDO').length} />
+                   <StatCard icon={<Church className="text-green-600"/>} label="Iglesias" value="3" />
+                   <StatCard icon={<Book className="text-purple-600"/>} label="Actas" value="12" />
                 </div>
              </div>
            )}
 
+           {/* VISTA: LISTADO DE PASTORES */}
            {activeTab === 'listado' && (
              <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                   <h1 className="text-2xl font-bold text-gray-800">Pastores</h1>
+                   <h1 className="text-2xl font-bold text-gray-800">Gestión de Pastores</h1>
                    <button onClick={() => {setEditingId(null); setActiveTab('nuevo')}} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition">
                       <Plus size={18} /> Nuevo Registro
                    </button>
@@ -116,7 +135,55 @@ const Admin = () => {
              </div>
            )}
 
-           {/* --- FORMULARIO CORREGIDO --- */}
+           {/* VISTA: IGLESIAS */}
+           {activeTab === 'iglesias' && (
+             <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="flex justify-between items-center">
+                   <h1 className="text-2xl font-bold text-gray-800">Iglesias</h1>
+                   <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Nueva Sede</button>
+                </div>
+                <div className="bg-white p-10 rounded-xl border border-gray-200 text-center text-gray-500">
+                    <Church size={48} className="mx-auto mb-4 text-gray-300"/>
+                    <p>Módulo de gestión de iglesias.</p>
+                </div>
+             </div>
+           )}
+
+            {/* VISTA: CREDENCIALES */}
+           {activeTab === 'credenciales' && (
+             <div className="space-y-6 animate-in fade-in duration-300">
+                <h1 className="text-2xl font-bold text-gray-800">Emisión de Credenciales</h1>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pastores.map(p => (
+                        <div key={p.id} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <img src={p.fotoUrl || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-full bg-gray-100"/>
+                                <div>
+                                    <p className="font-bold text-sm text-gray-800">{p.nombre} {p.apellido}</p>
+                                    <p className="text-xs text-gray-500">{p.dni}</p>
+                                </div>
+                            </div>
+                            <a href={`/#/credencial/${p.id}`} target="_blank" className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition">
+                                <Printer size={20}/>
+                            </a>
+                        </div>
+                    ))}
+                </div>
+             </div>
+           )}
+
+           {/* VISTA: LIBRO DE ACTAS */}
+           {activeTab === 'actas' && (
+             <div className="space-y-6 animate-in fade-in duration-300">
+                <h1 className="text-2xl font-bold text-gray-800">Libro de Actas</h1>
+                <div className="bg-white p-10 rounded-xl border border-gray-200 text-center text-gray-500">
+                    <Book size={48} className="mx-auto mb-4 text-gray-300"/>
+                    <p>Registro digital de actas y asambleas.</p>
+                </div>
+             </div>
+           )}
+
+           {/* VISTA: FORMULARIO */}
            {activeTab === 'nuevo' && (
              <div className="max-w-3xl mx-auto animate-in slide-in-from-right duration-300 pb-20">
                 <button onClick={cancelarEdicion} className="mb-4 text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1">← Volver</button>
@@ -128,8 +195,8 @@ const Admin = () => {
                         </div>
                         <button onClick={cancelarEdicion} className="p-2 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 transition"><X size={20}/></button>
                     </div>
-                    
                     <form onSubmit={guardarPastor} className="p-6 md:p-8 space-y-6">
+                        {/* CAMPOS DEL FORMULARIO... (Igual que antes) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input label="Nombre" val={form.nombre} set={v=>setForm({...form, nombre: v})} />
                             <Input label="Apellido" val={form.apellido} set={v=>setForm({...form, apellido: v})} />
@@ -142,21 +209,15 @@ const Admin = () => {
                             <Input label="Nombre Esposa" val={form.nombrePastora} set={v=>setForm({...form, nombrePastora: v})} required={false} />
                             <Input label="Teléfono" val={form.telefono} set={v=>setForm({...form, telefono: v})} required={false} />
                         </div>
-                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input label="Contraseña (Opcional)" type="password" val={form.password} set={v=>setForm({...form, password: v})} required={false} placeholder="Dejar vacío si no cambia" />
-                            
-                            {/* --- AQUÍ ESTÁN LOS SELECTORES CORREGIDOS --- */}
                             <div className="grid grid-cols-2 gap-4">
                                 <Select label="Estado" val={form.estado} set={v=>setForm({...form, estado: v})} options={[{v:'HABILITADO',l:'Habilitado'},{v:'SUSPENDIDO',l:'Suspendido'}]} />
                                 <Select label="Rol de Acceso" val={form.rol} set={v=>setForm({...form, rol: v})} options={[{v:'USER',l:'Pastor'},{v:'ADMIN',l:'Admin'}]} />
                             </div>
                         </div>
-
                         <Select label="Iglesia" val={form.iglesiaNombre} set={v=>setForm({...form, iglesiaNombre: v})} options={[{v:'', l:'Seleccionar Sede...'}, {v:'Sede Central', l:'Sede Central'}, {v:'Sede Norte', l:'Sede Norte'}]} />
-                        {/* Nota: Para iglesia texto libre usa Input, si quieres lista usa Select. Aquí dejé Input abajo por si acaso */}
-                         <Input label="Escribir Nombre Iglesia" val={form.iglesiaNombre} set={v=>setForm({...form, iglesiaNombre: v})} />
-
+                        <Input label="Escribir Nombre Iglesia (Si no está en lista)" val={form.iglesiaNombre} set={v=>setForm({...form, iglesiaNombre: v})} />
                         <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center gap-4">
                              <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center border border-gray-200 overflow-hidden shrink-0">
                                 {form.fotoUrl ? <img src={form.fotoUrl} className="w-full h-full object-cover"/> : <User className="text-gray-300"/>}
@@ -168,7 +229,6 @@ const Admin = () => {
                                 </label>
                              </div>
                         </div>
-
                         <div className="flex justify-end gap-3 pt-4">
                             <button type="button" onClick={cancelarEdicion} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition">Cancelar</button>
                             <button type="submit" disabled={uploading} className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition disabled:opacity-50 w-full md:w-auto">
@@ -185,7 +245,6 @@ const Admin = () => {
   );
 };
 
-// Componentes Auxiliares
 const SidebarItem = ({ icon, label, active, onClick }) => (
    <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mx-2 mb-1 transition-all text-sm font-medium ${active ? 'bg-blue-600 text-white shadow-md shadow-blue-900/20' : 'text-mds-text hover:bg-white/5 hover:text-white'}`} style={{width: 'calc(100% - 16px)'}}>
       {icon} {label}
@@ -203,7 +262,6 @@ const Input = ({ label, val, set, type="text", required=true, placeholder="" }) 
       <input type={type} value={val} onChange={e=>set(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder={placeholder} required={required} />
    </div>
 );
-// Selector corregido
 const Select = ({ label, val, set, options }) => (
     <div>
       <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{label}</label>
